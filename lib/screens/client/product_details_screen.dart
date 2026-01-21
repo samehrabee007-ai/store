@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/product_model.dart';
 import '../../models/cart_model.dart';
+import '../../models/review_model.dart';
 import '../../services/database_service.dart';
 import '../../services/auth_service.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -145,9 +146,177 @@ class ProductDetailsScreen extends StatelessWidget {
                 ],
               ),
             ),
+            Divider(thickness: 2),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'المراجعات',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 10),
+                  StreamBuilder<List<Review>>(
+                    stream: DatabaseService().getReviews(product.id),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return Center(child: CircularProgressIndicator());
+                      }
+                      if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                        return Column(
+                          children: [
+                            Text('لا تتوفر مراجعات بعد لهذا المنتج'),
+                            SizedBox(height: 10),
+                            ElevatedButton(
+                              onPressed: () => _showAddReviewDialog(context),
+                              child: Text('كن أول من يقيم'),
+                            ),
+                          ],
+                        );
+                      }
+
+                      final reviews = snapshot.data!;
+                      // Calculate averages visually here or rely on stored updated stats
+                      // Simple list display:
+                      return Column(
+                        children: [
+                          ListView.builder(
+                            shrinkWrap: true,
+                            physics: NeverScrollableScrollPhysics(),
+                            itemCount: reviews.length,
+                            itemBuilder: (context, index) {
+                              final rev = reviews[index];
+                              return ListTile(
+                                leading: CircleAvatar(
+                                  child: Text(rev.userName[0].toUpperCase()),
+                                ),
+                                title: Text(rev.userName),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: List.generate(
+                                        5,
+                                        (i) => Icon(
+                                          i < rev.rating
+                                              ? Icons.star
+                                              : Icons.star_border,
+                                          size: 16,
+                                          color: Colors.amber,
+                                        ),
+                                      ),
+                                    ),
+                                    Text(rev.comment),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                          SizedBox(height: 20),
+                          ElevatedButton(
+                            onPressed: () => _showAddReviewDialog(context),
+                            child: Text('أضف تقييمك'),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 20),
           ],
         ),
       ),
+    );
+  }
+
+  void _showAddReviewDialog(BuildContext context) {
+    final _commentController = TextEditingController();
+    double _rating = 5.0;
+
+    final user = AuthService().currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('يجب تسجيل الدخول لإضافة تقييم')));
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text('إضافة تقييم'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(5, (index) {
+                      return IconButton(
+                        icon: Icon(
+                          index < _rating ? Icons.star : Icons.star_border,
+                          color: Colors.amber,
+                          size: 30,
+                        ),
+                        onPressed: () {
+                          setDialogState(() {
+                            _rating = index + 1.0;
+                          });
+                        },
+                      );
+                    }),
+                  ),
+                  TextField(
+                    controller: _commentController,
+                    decoration: InputDecoration(
+                      labelText: 'تعليقك',
+                      hintText: 'اكتب رأيك هنا...',
+                    ),
+                    maxLines: 3,
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('إلغاء'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (_commentController.text.isNotEmpty) {
+                      Navigator.pop(context);
+                      // Fetch user name fresh or use placeholder needed
+                      Map<String, dynamic>? userData = await DatabaseService()
+                          .getUserData(user.uid);
+                      String userName = userData?['name'] ?? 'مستخدم';
+
+                      final review = Review(
+                        id: '', // Generated by Firestore doesn't matter for add, or we rely on .add()
+                        userId: user.uid,
+                        userName: userName,
+                        rating: _rating,
+                        comment: _commentController.text,
+                        createdAt: DateTime.now(),
+                      );
+
+                      await DatabaseService().addReview(product.id, review);
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(SnackBar(content: Text('تم نشر تقييمك')));
+                    }
+                  },
+                  child: Text('نشر'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }

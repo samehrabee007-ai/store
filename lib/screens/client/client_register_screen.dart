@@ -12,7 +12,7 @@ class _ClientRegisterScreenState extends State<ClientRegisterScreen> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  bool _isLoading = false;
+  String? _verificationId;
 
   void _register() async {
     if (_formKey.currentState!.validate()) {
@@ -20,32 +20,114 @@ class _ClientRegisterScreenState extends State<ClientRegisterScreen> {
         _isLoading = true;
       });
 
+      // Start Phone Verification
       try {
-        await AuthService().registerUser(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
-          name: _nameController.text.trim(),
-          phone: _phoneController.text.trim(),
+        await AuthService().verifyPhoneNumber(
+          phoneNumber: _phoneController.text.trim(),
+          onCodeSent: (verificationId, resendToken) {
+            setState(() {
+              _isLoading = false;
+              _verificationId = verificationId;
+            });
+            _showOtpDialog();
+          },
+          onVerificationFailed: (e) {
+            setState(() {
+              _isLoading = false;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('فشل التحقق من الهاتف: ${e.message}')),
+            );
+          },
+          onCodeAutoRetrievalTimeout: (verificationId) {
+            _verificationId = verificationId;
+          },
         );
-
-        setState(() {
-          _isLoading = false;
-        });
-
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('تم إنشاء الحساب بنجاح')));
-
-        // Navigate to Home
-        Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
       } catch (e) {
         setState(() {
           _isLoading = false;
         });
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('فشل إنشاء الحساب: $e')));
+        ).showSnackBar(SnackBar(content: Text('حدث خطأ: $e')));
       }
+    }
+  }
+
+  void _showOtpDialog() {
+    final TextEditingController _otpController = TextEditingController();
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('التحقق من رقم الهاتف'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('تم إرسال كود التحقق إلى ${_phoneController.text}'),
+              TextField(
+                controller: _otpController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(labelText: 'أدخل الكود (6 أرقام)'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Close dialog
+              },
+              child: Text('إلغاء'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (_otpController.text.isNotEmpty) {
+                  Navigator.pop(context); // Close dialog
+                  _completeRegistration(_otpController.text.trim());
+                }
+              },
+              child: Text('تأكيد'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _completeRegistration(String smsCode) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      if (_verificationId == null) throw 'OTP Verification ID missing';
+
+      await AuthService().registerUserWithPhoneAndEmail(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+        name: _nameController.text.trim(),
+        phone: _phoneController.text.trim(),
+        verificationId: _verificationId!,
+        smsCode: smsCode,
+      );
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('تم إنشاء الحساب بنجاح')));
+
+      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('فشل التسجيل: $e')));
     }
   }
 
@@ -94,14 +176,18 @@ class _ClientRegisterScreenState extends State<ClientRegisterScreen> {
                 TextFormField(
                   controller: _phoneController,
                   decoration: InputDecoration(
-                    labelText: 'رقم الهاتف',
+                    labelText: 'رقم الهاتف (مثل +2010xxxxxxxx)',
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.phone),
+                    hintText: '+201xxxxxxxxx',
                   ),
                   keyboardType: TextInputType.phone,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'الرجاء إدخال رقم الهاتف';
+                    }
+                    if (!value.startsWith('+')) {
+                      return 'يجب أن يبدأ الرقم بـ + (كود الدولة)';
                     }
                     return null;
                   },
@@ -149,7 +235,7 @@ class _ClientRegisterScreenState extends State<ClientRegisterScreen> {
                     onPressed: _isLoading ? null : _register,
                     child: _isLoading
                         ? CircularProgressIndicator(color: Colors.white)
-                        : Text('إنشاء حساب'),
+                        : Text('تحقق وإنشاء حساب'),
                   ),
                 ),
               ],

@@ -39,6 +39,13 @@ class AppDrawer extends StatelessWidget {
             },
           ),
           ListTile(
+            leading: Icon(Icons.person),
+            title: Text('الملف الشخصي'),
+            onTap: () {
+              Navigator.of(context).pushNamed('/profile');
+            },
+          ),
+          ListTile(
             leading: Icon(Icons.person_add),
             title: Text('تسجيل دخول / جديد'),
             onTap: () {

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/product_model.dart';
 import '../models/order_model.dart';
 import '../models/cart_model.dart';
+import '../models/review_model.dart';
 
 class DatabaseService {
   final CollectionReference _productsCollection = FirebaseFirestore.instance
@@ -138,6 +139,48 @@ class DatabaseService {
         .delete();
   }
 
+  // Get User Data
+  Future<Map<String, dynamic>?> getUserData(String uid) async {
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .get();
+    return doc.data();
+  }
+
+  // Update User Data
+  Future<void> updateUserData(String uid, Map<String, dynamic> data) async {
+    await FirebaseFirestore.instance.collection('users').doc(uid).update(data);
+  }
+
+  // Add Address
+  Future<void> addAddress(String uid, String address) async {
+    await FirebaseFirestore.instance.collection('users').doc(uid).update({
+      'addresses': FieldValue.arrayUnion([address]),
+    });
+  }
+
+  // Remove Address
+  Future<void> removeAddress(String uid, String address) async {
+    await FirebaseFirestore.instance.collection('users').doc(uid).update({
+      'addresses': FieldValue.arrayRemove([address]),
+    });
+  }
+
+  // Get User Addresses Stream
+  Stream<List<String>> getUserAddresses(String uid) {
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .snapshots()
+        .map((snapshot) {
+          if (snapshot.exists && snapshot.data()!.containsKey('addresses')) {
+            return List<String>.from(snapshot.data()!['addresses']);
+          }
+          return [];
+        });
+  }
+
   Future<void> clearCart(String uid) async {
     final batch = FirebaseFirestore.instance.batch();
     var snapshot = await FirebaseFirestore.instance
@@ -189,5 +232,26 @@ class DatabaseService {
         .collection('wishlist')
         .snapshots()
         .map((snapshot) => snapshot.docs.map((doc) => doc.id).toList());
+  }
+
+  // --- Reviews ---
+  Future<void> addReview(String productId, Review review) async {
+    await _productsCollection
+        .doc(productId)
+        .collection('reviews')
+        .add(review.toMap());
+  }
+
+  Stream<List<Review>> getReviews(String productId) {
+    return _productsCollection
+        .doc(productId)
+        .collection('reviews')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) {
+            return Review.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+          }).toList();
+        });
   }
 }

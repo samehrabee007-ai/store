@@ -11,7 +11,9 @@ import 'screens/client/client_register_screen.dart';
 import 'screens/client/cart_screen.dart';
 import 'screens/client/wishlist_screen.dart';
 import 'screens/client/my_orders_screen.dart';
+
 import 'screens/admin/admin_orders_screen.dart';
+import 'screens/client/profile_screen.dart';
 
 import 'firebase_options.dart';
 
@@ -65,6 +67,7 @@ class MyApp extends StatelessWidget {
         '/wishlist': (context) => WishlistScreen(),
         '/orders': (context) => MyOrdersScreen(),
         '/admin-orders': (context) => AdminOrdersScreen(),
+        '/profile': (context) => ProfileScreen(),
       },
     );
   }
