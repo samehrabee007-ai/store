@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "960357270163",
+    "project_id": "betalab-beta-lab-store",
+    "storage_bucket": "betalab-beta-lab-store.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:960357270163:android:2877c0826411abba008366",
+        "android_client_info": {
+          "package_name": "com.betalab.beta_lab_store"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDsZl_J0bQ4CtkRQ4K4hzLvLKusX4g8HPE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
