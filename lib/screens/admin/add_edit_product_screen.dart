@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import 'package:firebase_core/firebase_core.dart'; // إضافة المكتبة
+import 'package:firebase_database/firebase_database.dart'; // إضافة المكتبة للتعامل مع السيرفر
 import '../../models/product_model.dart';
 import '../../services/database_service.dart';
 import '../../services/storage_service.dart';
@@ -26,6 +28,12 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   File? _imageFile;
   bool _isLoading = false;
 
+  // تعريف مرجع قاعدة البيانات الخاص بسيرفر سنغافورة
+  final DatabaseReference _dbRef = FirebaseDatabase.instanceFor(
+    app: Firebase.app(),
+    databaseURL: 'https://betalab-beta-lab-store-default-rtdb.asia-southeast1.firebasedatabase.app/',
+  ).ref().child('products');
+
   @override
   void initState() {
     super.initState();
@@ -34,7 +42,6 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
       _priceController.text = widget.product!.price.toString();
       _descriptionController.text = widget.product!.description;
       _selectedCategory = widget.product!.category;
-      // TODO: Handle existing image URL
     }
   }
 
@@ -50,6 +57,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   }
 
   void _saveProduct() async {
+    // 1. التحقق من صحة المدخلات في الفورم
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
@@ -58,7 +66,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
       try {
         String imageUrl = widget.product?.imageUrl ?? '';
         
-        // Upload image if selected
+        // 2. رفع الصورة إذا تم اختيار صورة جديدة
         if (_imageFile != null) {
           final url = await StorageService().uploadImage(_imageFile!);
           if (url != null) {
@@ -66,33 +74,43 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
           }
         }
 
-        final product = Product(
-          id: widget.product?.id ?? '', // ID will be ignored for add
-          name: _nameController.text,
-          category: _selectedCategory,
-          price: double.parse(_priceController.text),
-          description: _descriptionController.text,
-          imageUrl: imageUrl,
-        );
+        // 3. تجهيز بيانات المنتج
+        final productData = {
+          'name': _nameController.text,
+          'category': _selectedCategory,
+          'price': double.tryParse(_priceController.text) ?? 0.0,
+          'description': _descriptionController.text,
+          'imageUrl': imageUrl,
+          'updatedAt': ServerValue.timestamp,
+        };
 
+        // 4. الحفظ في قاعدة البيانات (إضافة أو تعديل)
         if (widget.product == null) {
-           await DatabaseService().addProduct(product);
+          // حالة الإضافة الجديدة
+          await _dbRef.push().set(productData);
         } else {
-           await DatabaseService().updateProduct(product);
+          // حالة التعديل
+          await _dbRef.child(widget.product!.id).update(productData);
         }
 
-        setState(() {
-          _isLoading = false;
-        });
-
-        Navigator.pop(context);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('تم حفظ المنتج بنجاح')),
+          );
+          Navigator.pop(context);
+        }
       } catch (e) {
-        setState(() {
-          _isLoading = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('حدث خطأ: ${e.toString()}')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('حدث خطأ: ${e.toString()}')),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
       }
     }
   }
@@ -104,7 +122,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
         title: Text(widget.product == null ? 'إضافة منتج' : 'تعديل منتج'),
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: Column(
@@ -123,7 +141,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                       ? Image.file(_imageFile!, fit: BoxFit.cover)
                       : (widget.product?.imageUrl.isNotEmpty ?? false)
                           ? Image.network(widget.product!.imageUrl, fit: BoxFit.cover)
-                          : Column(
+                          : const Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(Icons.add_a_photo, size: 50, color: Colors.grey),
@@ -132,19 +150,19 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                             ),
                 ),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               TextFormField(
                 controller: _nameController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'اسم المنتج',
                   border: OutlineInputBorder(),
                 ),
                 validator: (value) => value!.isEmpty ? 'الرجاء إدخال اسم المنتج' : null,
               ),
-              SizedBox(height: 15),
+              const SizedBox(height: 15),
               DropdownButtonFormField<String>(
                 value: _selectedCategory,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'الفئة',
                   border: OutlineInputBorder(),
                 ),
@@ -160,35 +178,44 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                   });
                 },
               ),
-              SizedBox(height: 15),
+              const SizedBox(height: 15),
               TextFormField(
                 controller: _priceController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'السعر',
                   border: OutlineInputBorder(),
                   suffixText: 'ج.م',
                 ),
                 keyboardType: TextInputType.number,
-                validator: (value) => value!.isEmpty ? 'الرجاء إدخال السعر' : null,
+                validator: (value) {
+                  if (value!.isEmpty) return 'الرجاء إدخال السعر';
+                  if (double.tryParse(value) == null) return 'الرجاء إدخال رقم صحيح';
+                  return null;
+                },
               ),
-              SizedBox(height: 15),
+              const SizedBox(height: 15),
               TextFormField(
                 controller: _descriptionController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'الوصف',
                   border: OutlineInputBorder(),
                 ),
                 maxLines: 3,
                 validator: (value) => value!.isEmpty ? 'الرجاء إدخال الوصف' : null,
               ),
-              SizedBox(height: 30),
+              const SizedBox(height: 30),
               ElevatedButton(
+                // الزر سيصبح مفعلاً بمجرد استيفاء شروط الـ Form
                 onPressed: _isLoading ? null : _saveProduct,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).primaryColor,
+                  foregroundColor: Colors.white,
+                ),
                 child: Padding(
                   padding: const EdgeInsets.all(12.0),
                   child: _isLoading 
-                      ? CircularProgressIndicator(color: Colors.white)
-                      : Text('حفظ', style: TextStyle(fontSize: 18)),
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text('حفظ المنتج', style: TextStyle(fontSize: 18)),
                 ),
               ),
             ],
