@@ -1,37 +1,28 @@
-name: Flutter Build
-
+name: Flutter Build APK
 on:
   push:
-    branches: [ main ] # سيبدأ البناء بمجرد الرفع على فرع main
+    branches:
+      - main  # أو اسم الفرع الذي تعمل عليه حالياً
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Java
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v3
+      
+      - name: Setup Java
+        uses: actions/setup-java@v3
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Set up Flutter
+      - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          # تحديث الإصدار إلى 3.24.0 لحل مشكلة Dart SDK
-          flutter-version: '3.24.0' 
-          channel: 'stable'
+          flutter-version: '3.x' # تأكد من مطابقة الإصدار المثبت عندك
 
       - name: Install dependencies
         run: flutter pub get
 
       - name: Build APK
         run: flutter build apk --release
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
