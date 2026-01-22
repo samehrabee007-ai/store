@@ -41,10 +41,11 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDsZl_J0bQ4CtkRQ4K4hzLvLKusX4g8HPE',
-    appId: '1:960357270163:android:2877c0826411abba008366',
-    messagingSenderId: '960357270163',
-    projectId: 'betalab-beta-lab-store',
-    storageBucket: 'betalab-beta-lab-store.firebasestorage.app',
-  );
-}
+  apiKey: 'AIzaSy...', // أبقِ على مفتاحك الحالي
+  appId: '1:960357270163:android:...',
+  messagingSenderId: '960357270163',
+  projectId: 'betalab-beta-lab-store',
+  // التحديث الأهم
+  databaseURL: 'https://betalab-beta-lab-store-default-rtdb.asia-southeast1.firebasedatabase.app/',
+  storageBucket: 'betalab-beta-lab-store.firebasestorage.app',
+);
