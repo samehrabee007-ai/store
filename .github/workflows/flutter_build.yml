@@ -1,28 +1,53 @@
 name: Flutter Build APK
+
 on:
   push:
     branches:
-      - main  #  أو اسم الفرع الذي تعمل عليه حالياً
+      - main  # تأكد أن هذا هو اسم الفرع الرئيسي لديك
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
-      
+      # 1. جلب الكود من المستودع
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 2. إعداد نسخة Java المطلوبة لبناء الأندرويد (إصدار 17 هو الأنسب لـ Flutter الحديث)
       - name: Setup Java
         uses: actions/setup-java@v3
         with:
           distribution: 'zulu'
           java-version: '17'
+          cache: 'gradle'
 
+      # 3. إعداد نسخة Flutter (تم تحديد الإصدار 3.38.7 بناءً على رسالة الخطأ السابقة)
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.x' # تأكد من مطابقة الإصدار المثبت عندك
+          flutter-version: '3.38.7'
+          channel: 'stable'
+          cache: true
 
+      # 4. تحميل المكتبات البرمجية
       - name: Install dependencies
         run: flutter pub get
 
+      # 5. تنظيف المشروع قبل البناء لتجنب تعارضات الملفات المؤقتة
+      - name: Clean project
+        run: flutter clean
+
+      # 6. بناء ملف APK (Release) مع تجاهل أخطاء الأيقونات لضمان نجاح البناء
       - name: Build APK
-        run: flutter build apk --release
+        run: flutter build apk --release --no-tree-shake-icons
+
+      # 7. رفع الملف الناتج (APK) ليكون متاحاً للتحميل من GitHub
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
