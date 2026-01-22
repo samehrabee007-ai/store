@@ -6,7 +6,7 @@ import '../models/cart_model.dart';
 import '../models/review_model.dart';
 
 class DatabaseService {
-  // 1. رابط قاعدة البيانات الخاص بسيرفر سنغافورة كما ظهر في إعداداتك
+  // 1. رابط قاعدة البيانات الخاص بسيرفر سنغافورة
   final String _databaseURL = 'https://betalab-beta-lab-store-default-rtdb.asia-southeast1.firebasedatabase.app/';
 
   // 2. المرجع الأساسي لقاعدة البيانات
@@ -41,16 +41,6 @@ class DatabaseService {
     await _getRef().child('products').child(id).remove();
   }
 
-  // --- إعدادات بيانات الشركة (Company Info) ---
-
-  Stream<DatabaseEvent> get companyInfoStream {
-    return _getRef().child('settings/company_info').onValue;
-  }
-
-  Future<void> updateCompanyInfo(Map<String, dynamic> data) async {
-    await _getRef().child('settings/company_info').update(data);
-  }
-
   // --- إدارة الطلبات (Orders) ---
 
   Future<void> placeOrder(OrderModel order) async {
@@ -68,28 +58,22 @@ class DatabaseService {
     });
   }
 
-  Stream<List<OrderModel>> get allOrders {
-    return _getRef().child('orders').onValue.map((event) {
-      final Map<dynamic, dynamic>? data = event.snapshot.value as Map<dynamic, dynamic>?;
-      if (data == null) return [];
-      return data.entries
-          .map((entry) => OrderModel.fromMap(Map<String, dynamic>.from(entry.value), entry.key))
-          .toList();
-    });
-  }
-
-  Future<void> updateOrderStatus(String orderId, OrderStatus status) async {
-    await _getRef().child('orders').child(orderId).update({
-      'status': status.toString().split('.').last,
-    });
-  }
-
   // --- عربة التسوق (Cart) ---
+
+  // تم إضافة هذه الدالة لإصلاح خطأ cart_screen.dart
+  Future<void> updateCartItemQuantity(String uid, String productId, int quantity) async {
+    if (quantity <= 0) {
+      await removeFromCart(uid, productId);
+    } else {
+      await _getRef().child('users').child(uid).child('cart').child(productId).update({
+        'quantity': quantity,
+      });
+    }
+  }
 
   Future<void> addToCart(String uid, CartItem item) async {
     final cartRef = _getRef().child('users').child(uid).child('cart').child(item.productId);
     final snapshot = await cartRef.get();
-    
     if (snapshot.exists) {
       int currentQty = (snapshot.value as Map)['quantity'] ?? 0;
       await cartRef.update({'quantity': currentQty + item.quantity});
@@ -110,25 +94,24 @@ class DatabaseService {
     });
   }
 
-  Future<void> clearCart(String uid) async {
-    await _getRef().child('users').child(uid).child('cart').remove();
-  }
-
-  // --- إدارة بيانات المستخدم (User Data & Addresses) ---
-
-  Future<Map<String, dynamic>?> getUserData(String uid) async {
-    final snapshot = await _getRef().child('users').child(uid).get();
-    if (snapshot.exists) return Map<String, dynamic>.from(snapshot.value as Map);
-    return null;
-  }
-
-  Future<void> updateUserData(String uid, Map<String, dynamic> data) async {
-    await _getRef().child('users').child(uid).update(data);
-  }
+  // --- إدارة العناوين (Addresses) ---
 
   Future<void> addAddress(String uid, String address) async {
+    await _getRef().child('users').child(uid).child('addresses').push().set(address);
+  }
+
+  // تم إضافة هذه الدالة لإصلاح خطأ profile_screen.dart
+  Future<void> removeAddress(String uid, String address) async {
     final ref = _getRef().child('users').child(uid).child('addresses');
-    await ref.push().set(address);
+    final snapshot = await ref.get();
+    if (snapshot.exists) {
+      Map<dynamic, dynamic> data = snapshot.value as Map<dynamic, dynamic>;
+      data.forEach((key, value) {
+        if (value == address) {
+          ref.child(key).remove();
+        }
+      });
+    }
   }
 
   Stream<List<String>> getUserAddresses(String uid) {
@@ -139,42 +122,23 @@ class DatabaseService {
     });
   }
 
-  // --- المفضلة (Wishlist) ---
+  // --- وظائف إضافية للملف ---
 
-  Future<void> toggleWishlist(String uid, String productId) async {
-    final ref = _getRef().child('users').child(uid).child('wishlist').child(productId);
-    final snapshot = await ref.get();
-    if (snapshot.exists) {
-      await ref.remove();
-    } else {
-      await ref.set({
-        'productId': productId,
-        'addedAt': ServerValue.timestamp,
-      });
-    }
+  Future<void> updateUserData(String uid, Map<String, dynamic> data) async {
+    await _getRef().child('users').child(uid).update(data);
   }
 
-  Stream<List<String>> getWishlist(String uid) {
-    return _getRef().child('users').child(uid).child('wishlist').onValue.map((event) {
-      final Map<dynamic, dynamic>? data = event.snapshot.value as Map<dynamic, dynamic>?;
-      if (data == null) return [];
-      return data.keys.map((k) => k.toString()).toList();
-    });
+  Future<Map<String, dynamic>?> getUserData(String uid) async {
+    final snapshot = await _getRef().child('users').child(uid).get();
+    if (snapshot.exists) return Map<String, dynamic>.from(snapshot.value as Map);
+    return null;
   }
 
-  // --- المراجعات (Reviews) ---
-
-  Future<void> addReview(String productId, Review review) async {
-    await _getRef().child('products').child(productId).child('reviews').push().set(review.toMap());
+  Stream<DatabaseEvent> get companyInfoStream {
+    return _getRef().child('settings/company_info').onValue;
   }
 
-  Stream<List<Review>> getReviews(String productId) {
-    return _getRef().child('products').child(productId).child('reviews').onValue.map((event) {
-      final Map<dynamic, dynamic>? data = event.snapshot.value as Map<dynamic, dynamic>?;
-      if (data == null) return [];
-      return data.entries.map((entry) {
-        return Review.fromMap(Map<String, dynamic>.from(entry.value), entry.key);
-      }).toList();
-    });
+  Future<void> updateCompanyInfo(Map<String, dynamic> data) async {
+    await _getRef().child('settings/company_info').update(data);
   }
 }
