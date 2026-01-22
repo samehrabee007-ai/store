@@ -2,28 +2,29 @@ name: Flutter Build
 
 on:
   push:
-    branches: [ "master", "main" ]
+    branches: [ main ] # يتم البناء عند الرفع على فرع main
   pull_request:
-    branches: [ "master", "main" ]
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
+      - name: Set up Java
+        uses: actions/setup-java@v3
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Setup Flutter
+      - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.19.0' # يمكنك تغيير النسخة حسب مشروعك
           channel: 'stable'
-          
+
       - name: Install dependencies
         run: flutter pub get
 
@@ -31,7 +32,7 @@ jobs:
         run: flutter build apk --release
 
       - name: Upload APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
