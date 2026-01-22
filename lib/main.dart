@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_database/firebase_database.dart'; // إضافة مكتبة قاعدة البيانات
 import 'screens/client/home_screen.dart';
 import 'screens/client/products_screen.dart';
 import 'screens/client/about_screen.dart';
@@ -11,7 +12,6 @@ import 'screens/client/client_register_screen.dart';
 import 'screens/client/cart_screen.dart';
 import 'screens/client/wishlist_screen.dart';
 import 'screens/client/my_orders_screen.dart';
-
 import 'screens/admin/admin_orders_screen.dart';
 import 'screens/client/profile_screen.dart';
 
@@ -19,9 +19,15 @@ import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // تهيئة Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  runApp(MyApp());
+  // تحديث هام: ربط التطبيق بسيرفر سنغافورة الخاص بك لتفعيل الإضافة والتعديل
+  FirebaseDatabase.instance.databaseURL = 
+      "https://betalab-beta-lab-store-default-rtdb.asia-southeast1.firebasedatabase.app/";
+
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -34,9 +40,9 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.red,
-        primaryColor: Color(0xFFd92b2c), // User specified Red
+        primaryColor: const Color(0xFFd92b2c),
         scaffoldBackgroundColor: Colors.grey[50],
-        appBarTheme: AppBarTheme(
+        appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFFd92b2c),
           foregroundColor: Colors.white,
           centerTitle: true,
@@ -44,30 +50,25 @@ class MyApp extends StatelessWidget {
         ),
         colorScheme: ColorScheme.fromSwatch(
           primarySwatch: Colors.red,
-          accentColor: Color(0xFF212121), // Black/Dark Grey from logo
+          accentColor: const Color(0xFF212121),
         ),
         useMaterial3: true,
         fontFamily: 'Cairo',
       ),
-      localizationsDelegates: [
-        // TODO: Add Arabic localizations
-      ],
-      // supportedLocales: [Locale('ar', 'AE')],
-      // locale: Locale('ar', 'AE'),
-      home: HomeScreen(),
+      home: const HomeScreen(),
       routes: {
-        '/products': (context) => ProductsScreen(),
-        '/about': (context) => AboutScreen(),
-        '/admin-login': (context) => LoginScreen(),
-        '/admin-dashboard': (context) => DashboardScreen(),
-        '/edit-company-info': (context) => EditCompanyInfoScreen(),
-        '/client-login': (context) => ClientLoginScreen(),
-        '/client-register': (context) => ClientRegisterScreen(),
-        '/cart': (context) => CartScreen(),
-        '/wishlist': (context) => WishlistScreen(),
-        '/orders': (context) => MyOrdersScreen(),
-        '/admin-orders': (context) => AdminOrdersScreen(),
-        '/profile': (context) => ProfileScreen(),
+        '/products': (context) => const ProductsScreen(),
+        '/about': (context) => const AboutScreen(),
+        '/admin-login': (context) => const LoginScreen(),
+        '/admin-dashboard': (context) => const DashboardScreen(),
+        '/edit-company-info': (context) => const EditCompanyInfoScreen(),
+        '/client-login': (context) => const ClientLoginScreen(),
+        '/client-register': (context) => const ClientRegisterScreen(),
+        '/cart': (context) => const CartScreen(),
+        '/wishlist': (context) => const WishlistScreen(),
+        '/orders': (context) => const MyOrdersScreen(),
+        '/admin-orders': (context) => const AdminOrdersScreen(),
+        '/profile': (context) => const ProfileScreen(),
       },
     );
   }
