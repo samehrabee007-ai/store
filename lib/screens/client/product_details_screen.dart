@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/product_model.dart';
 import '../../services/database_service.dart';
@@ -16,13 +17,48 @@ class ProductDetailsScreen extends StatefulWidget {
 }
 
 class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
-  final TextEditingController _reviewController = TextEditingController();
+  Future<void> _launchWhatsApp() async {
+    try {
+      final companyInfo = await DatabaseService().getCompanyInfo();
+      // Default number if not found or empty
+      String phoneNumber = companyInfo?['phone'] ?? '+201000000000';
 
-  void _launchWhatsApp() {
-    // TODO: Implement WhatsApp launching logic using url_launcher
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('جاري فتح واتساب...')),
-    );
+      // Basic cleaning of the number
+      phoneNumber = phoneNumber.replaceAll(RegExp(r'[^\d+]'), '');
+
+      // Check if it's a valid number format, if not maybe just show error
+      if (phoneNumber.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('رقم الواتساب غير متوفر حالياً')),
+          );
+        }
+        return;
+      }
+
+      // WhatsApp URL scheme
+      final Uri whatsappUrl = Uri.parse('whatsapp://send?phone=$phoneNumber');
+      // Fallback web URL
+      final Uri webUrl = Uri.parse('https://wa.me/$phoneNumber');
+
+      if (await canLaunchUrl(whatsappUrl)) {
+        await launchUrl(whatsappUrl);
+      } else if (await canLaunchUrl(webUrl)) {
+        await launchUrl(webUrl, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('لا يمكن فتح واتساب')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('حدث خطأ: $e')),
+        );
+      }
+    }
   }
 
   void _showAddReviewModelDialog(BuildContext context) {

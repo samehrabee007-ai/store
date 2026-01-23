@@ -247,4 +247,12 @@ class DatabaseService {
   Future<void> updateCompanyInfo(Map<String, dynamic> data) async {
     await _getRef().child('settings/company_info').update(data);
   }
+
+  Future<Map<String, dynamic>?> getCompanyInfo() async {
+    final snapshot = await _getRef().child('settings/company_info').get();
+    if (snapshot.exists) {
+      return Map<String, dynamic>.from(snapshot.value as Map);
+    }
+    return null;
+  }
 }
