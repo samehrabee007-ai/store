@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_core/firebase_core.dart';
-import '../../services/database_service.dart';
+
 import 'add_edit_product_screen.dart';
+import '../../models/product_model.dart';
 
 class DashboardScreen extends StatelessWidget {
   // إضافة key المطلوب لتجنب أخطاء البناء
@@ -20,7 +21,7 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // تعريف مرجع قاعدة البيانات بشكل صحيح
-    final DatabaseReference _databaseRef =
+    final DatabaseReference databaseRef =
         FirebaseDatabase.instance.ref().child('products');
 
     return Scaffold(
@@ -37,7 +38,7 @@ class DashboardScreen extends StatelessWidget {
         ],
       ),
       body: StreamBuilder(
-        stream: _databaseRef.onValue,
+        stream: databaseRef.onValue,
         builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());

@@ -1,20 +1,18 @@
 import 'package:firebase_database/firebase_database.dart';
+import '../models/product_model.dart';
+import '../models/order_model.dart';
+import '../models/cart_model.dart';
+import '../models/review_model.dart';
 
 class DatabaseService {
-<<<<<<< HEAD
   // 1. رابط قاعدة البيانات الخاص بسيرفر سنغافورة
   final String _databaseURL =
       'https://betalab-beta-lab-store-default-rtdb.asia-southeast1.firebasedatabase.app/';
-=======
-  final DatabaseReference _db = FirebaseDatabase.instance.ref();
->>>>>>> df094a09f831d15687de47dc41bd9a53678acd36
 
-  // 1. وظيفة مسح السلة بعد الشراء (المطلوبة في checkout_screen.dart)
-  Future<void> clearCart(String userId) async {
-    await _db.child('carts').child(userId).remove();
+  DatabaseReference _getRef() {
+    return FirebaseDatabase.instance.refFromURL(_databaseURL);
   }
 
-<<<<<<< HEAD
   // --- إدارة المنتجات (Products) ---
 
   Stream<List<Product>> get products {
@@ -27,19 +25,8 @@ class DatabaseService {
             Map<String, dynamic>.from(entry.value), entry.key);
       }).toList();
     });
-=======
-  // 2. وظيفة جلب التقييمات (المطلوبة في product_details_screen.dart)
-  Stream<DatabaseEvent> getReviews(String productId) {
-    return _db.child('reviews').child(productId).onValue;
->>>>>>> df094a09f831d15687de47dc41bd9a53678acd36
   }
 
-  // 3. وظيفة إضافة تقييم جديد (المطلوبة في product_details_screen.dart)
-  Future<void> addReview(String productId, Map<String, dynamic> reviewData) async {
-    await _db.child('reviews').child(productId).push().set(reviewData);
-  }
-
-<<<<<<< HEAD
   Future<void> updateProduct(Product product) async {
     await _getRef().child('products').child(product.id).update(product.toMap());
   }
@@ -260,8 +247,4 @@ class DatabaseService {
   Future<void> updateCompanyInfo(Map<String, dynamic> data) async {
     await _getRef().child('settings/company_info').update(data);
   }
-=======
-  // وظائف إضافية قد تحتاجها
-  Stream<DatabaseEvent> get allProducts => _db.child('products').onValue;
->>>>>>> df094a09f831d15687de47dc41bd9a53678acd36
 }

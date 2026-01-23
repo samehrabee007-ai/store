@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // ضروري لتحديد هوية المستخدم
-import '../../services/database_service.dart'; // استيراد الخدمة المحدثة
 
-<<<<<<< HEAD
+import '../../services/database_service.dart'; // استيراد الخدمة المحدثة
+import '../../models/cart_model.dart';
+import '../../models/order_model.dart';
+import '../../services/auth_service.dart';
+
 class CheckoutScreen extends StatefulWidget {
   final double totalAmount;
   final List<CartItem> cartItems;
@@ -19,7 +21,7 @@ class CheckoutScreen extends StatefulWidget {
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
   final _formKey = GlobalKey<FormState>();
-  final String _address = '';
+  String _address = '';
   bool _isLoading = false;
 
   Future<void> _submitOrder() async {
@@ -83,39 +85,60 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       }
     }
   }
-=======
-class CheckoutScreen extends StatelessWidget {
-  const CheckoutScreen({super.key});
->>>>>>> df094a09f831d15687de47dc41bd9a53678acd36
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser; // جلب المستخدم الحالي
-
     return Scaffold(
       appBar: AppBar(title: const Text('إتمام الشراء')),
-      body: Center(
-        child: ElevatedButton(
-          onPressed: () async {
-            if (user != null) {
-              try {
-                // استدعاء الوظيفة التي قمنا بتعريفها في DatabaseService
-                await DatabaseService().clearCart(user.uid);
-                
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('تمت عملية الشراء بنجاح وتم مسح السلة')),
-                );
-                Navigator.popUntil(context, ModalRoute.withName('/'));
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('حدث خطأ: $e')),
-                );
-              }
-            }
-          },
-          child: const Text('تأكيد الطلب ومسح السلة'),
-        ),
-      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    Text(
+                      'إجمالي المبلغ: \$${widget.totalAmount.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      decoration: const InputDecoration(
+                        labelText: 'عنوان التوصيل',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'يرجى إدخال العنوان';
+                        }
+                        return null;
+                      },
+                      onSaved: (value) {
+                        _address = value ?? '';
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _submitOrder,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child: const Text(
+                          'تأكيد الطلب',
+                          style: TextStyle(fontSize: 18),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
     );
   }
 }
