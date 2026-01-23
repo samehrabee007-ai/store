@@ -16,6 +16,7 @@ import 'screens/admin/admin_orders_screen.dart';
 import 'screens/client/profile_screen.dart';
 
 import 'firebase_options.dart';
+import 'services/database_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,6 +27,9 @@ void main() async {
   // تحديث هام: ربط التطبيق بسيرفر سنغافورة الخاص بك لتفعيل الإضافة والتعديل
   FirebaseDatabase.instance.databaseURL =
       "https://betalab-beta-lab-store-default-rtdb.asia-southeast1.firebasedatabase.app/";
+
+  // اختبار الاتصال عند بدء التشغيل
+  DatabaseService().testConnection();
 
   runApp(const MyApp());
 }

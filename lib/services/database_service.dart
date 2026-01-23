@@ -13,6 +13,17 @@ class DatabaseService {
     return FirebaseDatabase.instance.refFromURL(_databaseURL);
   }
 
+  // دالة لاختبار الاتصال
+  void testConnection() {
+    _getRef().child(".info/connected").onValue.listen((event) {
+      if (event.snapshot.value == true) {
+        print("✅ اتصال بقاعدة البيانات ناجح!");
+      } else {
+        print("❌ غير متصل بقاعدة البيانات.");
+      }
+    });
+  }
+
   // --- إدارة المنتجات (Products) ---
 
   Stream<List<Product>> get products {
