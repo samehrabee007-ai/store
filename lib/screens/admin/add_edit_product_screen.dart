@@ -27,12 +27,8 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   File? _imageFile;
   bool _isLoading = false;
 
-  // تعريف مرجع قاعدة البيانات الخاص بسيرفر سنغافورة
-  final DatabaseReference _dbRef = FirebaseDatabase.instanceFor(
-    app: Firebase.app(),
-    databaseURL:
-        'https://betalab-beta-lab-store-default-rtdb.asia-southeast1.firebasedatabase.app/',
-  ).ref().child('products');
+  // استخدام المرجع العام الذي تم تهيئته في main.dart
+  final DatabaseReference _dbRef = FirebaseDatabase.instance.ref().child('products');
 
   @override
   void initState() {
@@ -57,7 +53,6 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   }
 
   void _saveProduct() async {
-    // 1. التحقق من صحة المدخلات في الفورم
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
@@ -66,15 +61,16 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
       try {
         String imageUrl = widget.product?.imageUrl ?? '';
 
-        // 2. رفع الصورة إذا تم اختيار صورة جديدة
+        // اضافة مهلة زمنية (timeout) لعملية رفع الصورة
         if (_imageFile != null) {
-          final url = await StorageService().uploadImage(_imageFile!);
+          final url = await StorageService()
+              .uploadImage(_imageFile!)
+              .timeout(const Duration(seconds: 30));
           if (url != null) {
             imageUrl = url;
           }
         }
 
-        // 3. تجهيز بيانات المنتج
         final productData = {
           'name': _nameController.text,
           'category': _selectedCategory,
@@ -84,14 +80,15 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
           'updatedAt': ServerValue.timestamp,
         };
 
-        // 4. الحفظ في قاعدة البيانات (إضافة أو تعديل)
+        // اضافة مهلة زمنية (timeout) لعملية الحفظ
+        Future<void> saveFuture;
         if (widget.product == null) {
-          // حالة الإضافة الجديدة
-          await _dbRef.push().set(productData);
+          saveFuture = _dbRef.push().set(productData);
         } else {
-          // حالة التعديل
-          await _dbRef.child(widget.product!.id).update(productData);
+          saveFuture = _dbRef.child(widget.product!.id).update(productData);
         }
+
+        await saveFuture.timeout(const Duration(seconds: 30));
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -101,8 +98,12 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
         }
       } catch (e) {
         if (mounted) {
+          String errorMessage = 'حدث خطأ: ${e.toString()}';
+          if (e.toString().contains('TimeoutException')) {
+            errorMessage = 'انتهت مهلة الاتصال. يرجى التحقق من الإنترنت والمحاولة مرة أخرى.';
+          }
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('حدث خطأ: ${e.toString()}')),
+            SnackBar(content: Text(errorMessage)),
           );
         }
       } finally {

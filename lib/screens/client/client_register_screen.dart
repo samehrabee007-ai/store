@@ -118,7 +118,7 @@ class _ClientRegisterScreenState extends State<ClientRegisterScreen> {
         phone: _phoneController.text.trim(),
         verificationId: _verificationId!,
         smsCode: smsCode,
-      );
+      ).timeout(const Duration(seconds: 30));
 
       setState(() {
         _isLoading = false;
@@ -126,7 +126,7 @@ class _ClientRegisterScreenState extends State<ClientRegisterScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('تم إنشاء الحساب بنجاح')),
+          const SnackBar(content: Text('تم إنشاء الحساب بنجاح')),
         );
       }
 
@@ -138,8 +138,12 @@ class _ClientRegisterScreenState extends State<ClientRegisterScreen> {
         _isLoading = false;
       });
       if (mounted) {
+        String errorMessage = 'فشل التسجيل: $e';
+        if (e.toString().contains('TimeoutException')) {
+          errorMessage = 'انتهت مهلة الاتصال. يرجى التحقق من الإنترنت والمحاولة مرة أخرى.';
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('فشل التسجيل: $e')),
+          SnackBar(content: Text(errorMessage)),
         );
       }
     }
