@@ -25,9 +25,11 @@ void main() async {
 
     try {
       // تهيئة Firebase
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
+      if (Firebase.apps.isEmpty) {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+      }
 
       // اختبار الاتصال عند بدء التشغيل
       DatabaseService().testConnection();
