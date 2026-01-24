@@ -44,7 +44,7 @@ flutter:
     - assets/images/
 
   # إعداد خط Cairo (تأكد من وجود الملف في مجلد assets/fonts/)
-  fonts:
-    - family: Cairo
-      fonts:
-        - asset: assets/fonts/Cairo-Regular.ttf
+  # fonts:
+  #   - family: Cairo
+  #     fonts:
+  #       - asset: assets/fonts/Cairo-Regular.ttf
