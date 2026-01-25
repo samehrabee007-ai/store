@@ -25,10 +25,21 @@ void main() async {
 
     try {
       // تهيئة Firebase
-      if (Firebase.apps.isEmpty) {
-        await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform,
-        );
+      try {
+        if (Firebase.apps.isEmpty) {
+          await Firebase.initializeApp(
+            options: DefaultFirebaseOptions.currentPlatform,
+          );
+        } else {
+          Firebase.app(); // Ensure default app exists
+        }
+      } catch (e) {
+        // Ignore duplicate app error which can happen during hot reload/restart
+        if (e.toString().contains("already exists")) {
+          // Default app already exists, safe to proceed
+        } else {
+          rethrow;
+        }
       }
 
       // اختبار الاتصال عند بدء التشغيل
