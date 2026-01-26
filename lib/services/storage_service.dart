@@ -4,9 +4,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 class StorageService {
-  final FirebaseStorage _storage = FirebaseStorage.instanceFor(
-      app: Firebase.app(),
-      bucket: 'gs://betalab-beta-lab-store.firebasestorage.app');
+  final FirebaseStorage _storage = FirebaseStorage.instance;
 
   // Upload image
   Future<String?> uploadImage(File file) async {
